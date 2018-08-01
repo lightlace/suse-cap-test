@@ -1,0 +1,39 @@
+# Set respective environment variables or substitute in this file
+env:
+    # Enter the domain you created for your CAP cluster
+    # Floating IP of master node
+    DOMAIN: {{CLUSTER_DOMAIN}}
+
+    # UAA host and port
+    UAA_HOST: uaa.{{CLUSTER_DOMAIN}}
+    UAA_PORT: 2793
+
+kube:
+    # The IP address assigned to the kube node pointed to by the domain.
+    # On Openstack this is the internal IP of the master node
+    external_ips: ["{{KUBE_IP}}"]
+
+    # Run kubectl get storageclasses
+    # to view your available storage classes
+    storage_class:
+        persistent: "hostpath"
+        shared: "shared"
+
+    # The registry the images will be fetched from.
+    # The values below should work for
+    # a default installation from the SUSE registry.
+    registry:
+        hostname: "registry.suse.com"
+        username: ""
+        password: ""
+    organization: "cap"
+
+    # Required for CaaSP 2
+    auth: rbac
+
+secrets:
+    # Create a password for your CAP cluster
+    CLUSTER_ADMIN_PASSWORD: "{{CLUSTER_ADMIN_PASSWORD}}"
+
+    # Create a password for your UAA client secret
+    UAA_ADMIN_CLIENT_SECRET: "{{UAA_ADMIN_CLIENT_SECRET}}"
