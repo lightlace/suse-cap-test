@@ -1,2 +1,3 @@
 ecp/caasp-openstack-heat-templates
-eks/
+ecp/scf-config-values-local.yaml
+eks/.terraform
