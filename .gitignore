@@ -1,6 +1,6 @@
 ecp/caasp-openstack-heat-templates
 ecp/scf-config-values-local.yaml
-eks/.terraform
-eks/*.tfstate
-eks/*-plan
+eks/terraform/.terraform
+eks/terraform/*.tfstate
+eks/terraform/*-plan
 eks/config-map-auth.yaml
