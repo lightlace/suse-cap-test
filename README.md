@@ -10,6 +10,7 @@ Test on Amazon EKS (**STILL IN TESTING**)
  1. Go to folder `eks`
  2. Run `terraform apply` to create the cluster in AWS
  3. Make sure you have the [latest `kubectl` ready](https://kubernetes.io/docs/tasks/tools/install-kubectl/).
+ 4. Make sure you have the [latest `helm` ready](https://github.com/helm/helm/releases).
  4. Make sure you have the [`aws-iam-authenticator` binary ready](https://github.com/kubernetes-sigs/aws-iam-authenticator).
  5. Run `terraform output config-map-aws-auth` and save the output to a `<filename>.yml`. NOTE: make sure it's correctly formatted.
  6. Run `kubectl apply -f <filename>.yml` to create a configmap to connect to your EKS cluster.
