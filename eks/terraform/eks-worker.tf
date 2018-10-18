@@ -36,12 +36,20 @@ resource "aws_iam_instance_profile" "demo-node" {
   name = "terraform-eks-demo"
   role = "${aws_iam_role.demo-node.name}"
 }
+
 resource "aws_security_group" "demo-node" {
   name        = "terraform-eks-demo-node"
   description = "Security group for all nodes in the cluster"
   vpc_id      = "${aws_vpc.demo.id}"
 
   egress {
+    from_port   = 0
+    to_port     = 0
+    protocol    = "-1"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+
+  ingress {
     from_port   = 0
     to_port     = 0
     protocol    = "-1"
@@ -76,42 +84,42 @@ resource "aws_security_group_rule" "demo-node-ingress-cluster" {
   type                     = "ingress"
 }
 
-resource "aws_security_group_rule" "demo-cluster-ingress-cap-http" {
+resource "aws_security_group_rule" "demo-node-ingress-cap-http" {
   description              = "Allow CloudFoundry to communicate on http port"
   from_port                = 80
   protocol                 = "tcp"
-  security_group_id        = "${aws_security_group.demo-cluster.id}"
-  source_security_group_id = "${aws_security_group.demo-node.id}"
+  security_group_id        = "${aws_security_group.demo-node.id}"
+  source_security_group_id = "${aws_security_group.demo-cluster.id}"
   to_port                  = 80
   type                     = "ingress"
 }
 
-resource "aws_security_group_rule" "demo-cluster-ingress-cap-uaa" {
+resource "aws_security_group_rule" "demo-node-ingress-cap-uaa" {
   description              = "Allow CloudFoundry to communicate for UAA"
   from_port                = 2793
   protocol                 = "tcp"
-  security_group_id        = "${aws_security_group.demo-cluster.id}"
-  source_security_group_id = "${aws_security_group.demo-node.id}"
+  security_group_id        = "${aws_security_group.demo-node.id}"
+  source_security_group_id = "${aws_security_group.demo-cluster.id}"
   to_port                  = 2793
   type                     = "ingress"
 }
 
-resource "aws_security_group_rule" "demo-cluster-ingress-cap-ssh" {
+resource "aws_security_group_rule" "demo-node-ingress-cap-ssh" {
   description              = "Allow CloudFoundry to communicate for SSH"
   from_port                = 2222
   protocol                 = "tcp"
-  security_group_id        = "${aws_security_group.demo-cluster.id}"
-  source_security_group_id = "${aws_security_group.demo-node.id}"
+  security_group_id        = "${aws_security_group.demo-node.id}"
+  source_security_group_id = "${aws_security_group.demo-cluster.id}"
   to_port                  = 2222
   type                     = "ingress"
 }
 
-resource "aws_security_group_rule" "demo-cluster-ingress-cap-wss" {
+resource "aws_security_group_rule" "demo-node-ingress-cap-wss" {
   description              = "Allow CloudFoundry to communicate for WSS"
   from_port                = 4443
   protocol                 = "tcp"
-  security_group_id        = "${aws_security_group.demo-cluster.id}"
-  source_security_group_id = "${aws_security_group.demo-node.id}"
+  security_group_id        = "${aws_security_group.demo-node.id}"
+  source_security_group_id = "${aws_security_group.demo-cluster.id}"
   to_port                  = 4443
   type                     = "ingress"
 }
@@ -126,22 +134,22 @@ resource "aws_security_group_rule" "demo-cluster-ingress-cap-wss" {
 #   type                     = "ingress"
 # }
 
-resource "aws_security_group_rule" "demo-cluster-ingress-cap-brains" {
+resource "aws_security_group_rule" "demo-node-ingress-cap-brains" {
   description              = "Allow CloudFoundry to communicate for CAP Brains"
   from_port                = 20000
   protocol                 = "tcp"
-  security_group_id        = "${aws_security_group.demo-cluster.id}"
-  source_security_group_id = "${aws_security_group.demo-node.id}"
+  security_group_id        = "${aws_security_group.demo-node.id}"
+  source_security_group_id = "${aws_security_group.demo-cluster.id}"
   to_port                  = 20009
   type                     = "ingress"
 }
 
-resource "aws_security_group_rule" "demo-cluster-ingress-node-https" {
+resource "aws_security_group_rule" "demo-node-ingress-node-https" {
   description              = "Allow pods to communicate with the cluster API Server"
   from_port                = 443
   protocol                 = "tcp"
-  security_group_id        = "${aws_security_group.demo-cluster.id}"
-  source_security_group_id = "${aws_security_group.demo-node.id}"
+  security_group_id        = "${aws_security_group.demo-node.id}"
+  source_security_group_id = "${aws_security_group.demo-cluster.id}"
   to_port                  = 443
   type                     = "ingress"
 }
