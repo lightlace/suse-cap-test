@@ -1,46 +1,7 @@
-resource "aws_iam_role" "demo-node" {
-  name = "terraform-eks-demo-node"
-
-  assume_role_policy = <<POLICY
-{
-  "Version": "2012-10-17",
-  "Statement": [
-    {
-      "Effect": "Allow",
-      "Principal": {
-        "Service": "ec2.amazonaws.com"
-      },
-      "Action": "sts:AssumeRole"
-    }
-  ]
-}
-POLICY
-}
-
-resource "aws_iam_role_policy_attachment" "demo-node-AmazonEKSWorkerNodePolicy" {
-  policy_arn = "arn:aws:iam::aws:policy/AmazonEKSWorkerNodePolicy"
-  role       = "${aws_iam_role.demo-node.name}"
-}
-
-resource "aws_iam_role_policy_attachment" "demo-node-AmazonEKS_CNI_Policy" {
-  policy_arn = "arn:aws:iam::aws:policy/AmazonEKS_CNI_Policy"
-  role       = "${aws_iam_role.demo-node.name}"
-}
-
-resource "aws_iam_role_policy_attachment" "demo-node-AmazonEC2ContainerRegistryReadOnly" {
-  policy_arn = "arn:aws:iam::aws:policy/AmazonEC2ContainerRegistryReadOnly"
-  role       = "${aws_iam_role.demo-node.name}"
-}
-
-resource "aws_iam_instance_profile" "demo-node" {
-  name = "terraform-eks-demo"
-  role = "${aws_iam_role.demo-node.name}"
-}
-
-resource "aws_security_group" "demo-node" {
-  name        = "terraform-eks-demo-node"
-  description = "Security group for all nodes in the cluster"
-  vpc_id      = "${aws_vpc.demo.id}"
+resource "aws_security_group" "eks-worker" {
+  name        = "${var.cluster-name}-worker"
+  description = "Security group for all workers in the cluster"
+  vpc_id      = "${aws_vpc.main.id}"
 
   egress {
     from_port   = 0
@@ -56,103 +17,94 @@ resource "aws_security_group" "demo-node" {
     cidr_blocks = ["0.0.0.0/0"]
   }
 
-  tags = "${
-    map(
-     "Name", "terraform-eks-demo-node",
-     "kubernetes.io/cluster/${var.cluster-name}", "owned",
-    )
-  }"
+  tags {
+     Name = "${var.cluster-name}"
+  }
 }
 
-resource "aws_security_group_rule" "demo-node-ingress-self" {
-  description              = "Allow node to communicate with each other"
+# Security group rules general and CAP-specific (please test)
+
+resource "aws_security_group_rule" "eks-worker-ingress-workers" {
+  description              = "Allow workers to communicate with each other"
   from_port                = 0
   protocol                 = "-1"
-  security_group_id        = "${aws_security_group.demo-node.id}"
-  source_security_group_id = "${aws_security_group.demo-node.id}"
+  security_group_id        = "${aws_security_group.eks-worker.id}"
+  source_security_group_id = "${aws_security_group.eks-worker.id}"
   to_port                  = 65535
   type                     = "ingress"
 }
 
-resource "aws_security_group_rule" "demo-node-ingress-cluster" {
+resource "aws_security_group_rule" "eks-worker-ingress-cluster" {
   description              = "Allow worker Kubelets and pods to receive communication from the cluster control plane"
   from_port                = 1025
   protocol                 = "tcp"
-  security_group_id        = "${aws_security_group.demo-node.id}"
-  source_security_group_id = "${aws_security_group.demo-cluster.id}"
+  security_group_id        = "${aws_security_group.eks-worker.id}"
+  source_security_group_id = "${aws_security_group.eks-cluster.id}"
   to_port                  = 65535
   type                     = "ingress"
 }
 
-resource "aws_security_group_rule" "demo-node-ingress-cap-http" {
+resource "aws_security_group_rule" "eks-worker-ingress-cap-http" {
   description              = "Allow CloudFoundry to communicate on http port"
   from_port                = 80
   protocol                 = "tcp"
-  security_group_id        = "${aws_security_group.demo-node.id}"
-  source_security_group_id = "${aws_security_group.demo-cluster.id}"
+  security_group_id        = "${aws_security_group.eks-worker.id}"
+  source_security_group_id = "${aws_security_group.eks-cluster.id}"
   to_port                  = 80
   type                     = "ingress"
 }
 
-resource "aws_security_group_rule" "demo-node-ingress-cap-uaa" {
+resource "aws_security_group_rule" "eks-worker-ingress-cap-uaa" {
   description              = "Allow CloudFoundry to communicate for UAA"
   from_port                = 2793
   protocol                 = "tcp"
-  security_group_id        = "${aws_security_group.demo-node.id}"
-  source_security_group_id = "${aws_security_group.demo-cluster.id}"
+  security_group_id        = "${aws_security_group.eks-worker.id}"
+  source_security_group_id = "${aws_security_group.eks-cluster.id}"
   to_port                  = 2793
   type                     = "ingress"
 }
 
-resource "aws_security_group_rule" "demo-node-ingress-cap-ssh" {
+resource "aws_security_group_rule" "eks-worker-ingress-cap-ssh" {
   description              = "Allow CloudFoundry to communicate for SSH"
   from_port                = 2222
   protocol                 = "tcp"
-  security_group_id        = "${aws_security_group.demo-node.id}"
-  source_security_group_id = "${aws_security_group.demo-cluster.id}"
+  security_group_id        = "${aws_security_group.eks-worker.id}"
+  source_security_group_id = "${aws_security_group.eks-cluster.id}"
   to_port                  = 2222
   type                     = "ingress"
 }
 
-resource "aws_security_group_rule" "demo-node-ingress-cap-wss" {
+resource "aws_security_group_rule" "eks-worker-ingress-cap-wss" {
   description              = "Allow CloudFoundry to communicate for WSS"
   from_port                = 4443
   protocol                 = "tcp"
-  security_group_id        = "${aws_security_group.demo-node.id}"
-  source_security_group_id = "${aws_security_group.demo-cluster.id}"
+  security_group_id        = "${aws_security_group.eks-worker.id}"
+  source_security_group_id = "${aws_security_group.eks-cluster.id}"
   to_port                  = 4443
   type                     = "ingress"
 }
 
-# resource "aws_security_group_rule" "demo-cluster-ingress-cap-https" {
-#   description              = "Allow CloudFoundry to communicate for HTTPS"
-#   from_port                = 443
-#   protocol                 = "tcp"
-#   security_group_id        = "${aws_security_group.demo-cluster.id}"
-#   source_security_group_id = "${aws_security_group.demo-node.id}"
-#   to_port                  = 443
-#   type                     = "ingress"
-# }
-
-resource "aws_security_group_rule" "demo-node-ingress-cap-brains" {
+resource "aws_security_group_rule" "eks-worker-ingress-cap-brains" {
   description              = "Allow CloudFoundry to communicate for CAP Brains"
   from_port                = 20000
   protocol                 = "tcp"
-  security_group_id        = "${aws_security_group.demo-node.id}"
-  source_security_group_id = "${aws_security_group.demo-cluster.id}"
+  security_group_id        = "${aws_security_group.eks-worker.id}"
+  source_security_group_id = "${aws_security_group.eks-cluster.id}"
   to_port                  = 20009
   type                     = "ingress"
 }
 
-resource "aws_security_group_rule" "demo-node-ingress-node-https" {
+resource "aws_security_group_rule" "eks-worker-ingress-node-https" {
   description              = "Allow pods to communicate with the cluster API Server"
   from_port                = 443
   protocol                 = "tcp"
-  security_group_id        = "${aws_security_group.demo-node.id}"
-  source_security_group_id = "${aws_security_group.demo-cluster.id}"
+  security_group_id        = "${aws_security_group.eks-worker.id}"
+  source_security_group_id = "${aws_security_group.eks-cluster.id}"
   to_port                  = 443
   type                     = "ingress"
 }
+
+# Default AMI for EKS workers in eu-west-1 (Ireland)
 
 data "aws_ami" "eks-worker" {
   filter {
@@ -164,8 +116,43 @@ data "aws_ami" "eks-worker" {
   owners      = ["602401143452"] # Amazon Account ID
 }
 
-# This data source is included for ease of sample architecture deployment
-# and can be swapped out as necessary.
+# Could possibly use a bare ec2 resource here?
+
+resource "aws_launch_configuration" "eks-worker" {
+  associate_public_ip_address = true
+  iam_instance_profile        = "${aws_iam_instance_profile.eks-worker.name}"
+  image_id                    = "${data.aws_ami.eks-worker.id}"
+  instance_type               = "m4.large"
+  name_prefix                 = "${var.cluster-name}"
+  security_groups             = ["${aws_security_group.eks-worker.id}"]
+  user_data_base64            = "${base64encode(local.eks-worker-userdata)}"
+
+  lifecycle {
+    create_before_destroy = true
+  }
+}
+
+resource "aws_autoscaling_group" "eks-worker" {
+  desired_capacity     = 2
+  launch_configuration = "${aws_launch_configuration.eks-worker.id}"
+  max_size             = 2
+  min_size             = 1
+  name                 = "${var.cluster-name}"
+  vpc_zone_identifier  = ["${aws_subnet.main.*.id}"]
+
+  tag {
+    key                 = "Name"
+    value               = "${var.cluster-name}"
+    propagate_at_launch = true
+  }
+
+  tag {
+    key                 = "${var.cluster-name}"
+    value               = "owned"
+    propagate_at_launch = true
+  }
+}
+
 data "aws_region" "current" {}
 
 # EKS currently documents this required userdata for EKS worker nodes to
@@ -174,19 +161,19 @@ data "aws_region" "current" {}
 # information into the AutoScaling Launch Configuration.
 # More information: https://amazon-eks.s3-us-west-2.amazonaws.com/1.10.3/2018-06-05/amazon-eks-nodegroup.yaml
 locals {
-  demo-node-userdata = <<USERDATA
+  eks-worker-userdata = <<USERDATA
 #!/bin/bash -xe
 
 CA_CERTIFICATE_DIRECTORY=/etc/kubernetes/pki
 CA_CERTIFICATE_FILE_PATH=$CA_CERTIFICATE_DIRECTORY/ca.crt
 mkdir -p $CA_CERTIFICATE_DIRECTORY
-echo "${aws_eks_cluster.demo.certificate_authority.0.data}" | base64 -d >  $CA_CERTIFICATE_FILE_PATH
+echo "${aws_eks_cluster.eks-cluster.certificate_authority.0.data}" | base64 -d >  $CA_CERTIFICATE_FILE_PATH
 INTERNAL_IP=$(curl -s http://169.254.169.254/latest/meta-data/local-ipv4)
-sed -i s,MASTER_ENDPOINT,${aws_eks_cluster.demo.endpoint},g /var/lib/kubelet/kubeconfig
+sed -i s,MASTER_ENDPOINT,${aws_eks_cluster.eks-cluster.endpoint},g /var/lib/kubelet/kubeconfig
 sed -i s,CLUSTER_NAME,${var.cluster-name},g /var/lib/kubelet/kubeconfig
 sed -i s,REGION,${data.aws_region.current.name},g /etc/systemd/system/kubelet.service
 sed -i s,MAX_PODS,20,g /etc/systemd/system/kubelet.service
-sed -i s,MASTER_ENDPOINT,${aws_eks_cluster.demo.endpoint},g /etc/systemd/system/kubelet.service
+sed -i s,MASTER_ENDPOINT,${aws_eks_cluster.eks-cluster.endpoint},g /etc/systemd/system/kubelet.service
 sed -i s,INTERNAL_IP,$INTERNAL_IP,g /etc/systemd/system/kubelet.service
 DNS_CLUSTER_IP=10.100.0.10
 if [[ $INTERNAL_IP == 10.* ]] ; then DNS_CLUSTER_IP=172.20.0.10; fi
@@ -196,39 +183,4 @@ sed -i s,CLIENT_CA_FILE,$CA_CERTIFICATE_FILE_PATH,g  /etc/systemd/system/kubelet
 systemctl daemon-reload
 systemctl restart kubelet
 USERDATA
-}
-
-resource "aws_launch_configuration" "demo" {
-  associate_public_ip_address = true
-  iam_instance_profile        = "${aws_iam_instance_profile.demo-node.name}"
-  image_id                    = "${data.aws_ami.eks-worker.id}"
-  instance_type               = "m4.large"
-  name_prefix                 = "terraform-eks-demo"
-  security_groups             = ["${aws_security_group.demo-node.id}"]
-  user_data_base64            = "${base64encode(local.demo-node-userdata)}"
-
-  lifecycle {
-    create_before_destroy = true
-  }
-}
-
-resource "aws_autoscaling_group" "demo" {
-  desired_capacity     = 2
-  launch_configuration = "${aws_launch_configuration.demo.id}"
-  max_size             = 2
-  min_size             = 1
-  name                 = "terraform-eks-demo"
-  vpc_zone_identifier  = ["${aws_subnet.demo.*.id}"]
-
-  tag {
-    key                 = "Name"
-    value               = "terraform-eks-demo"
-    propagate_at_launch = true
-  }
-
-  tag {
-    key                 = "kubernetes.io/cluster/${var.cluster-name}"
-    value               = "owned"
-    propagate_at_launch = true
-  }
 }

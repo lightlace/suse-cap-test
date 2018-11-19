@@ -1,4 +1,4 @@
 variable "cluster-name" {
-  default = "suse-cap-eks"
+  default = "eks-suse-cap"
   type    = "string"
 }
