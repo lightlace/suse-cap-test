@@ -7,7 +7,7 @@ Test on SUSE Openstack Cloud
 
 Test on Amazon EKS (**STILL IN TESTING**)
 ===
- 1. Go to folder `eks`
+ 1. Go to folder `eks/terraform`
  2. Run `terraform apply` to create the cluster in AWS
  3. Make sure you have the [latest `kubectl` ready](https://kubernetes.io/docs/tasks/tools/install-kubectl/).
  4. Make sure you have the [latest `helm` ready](https://github.com/helm/helm/releases).
