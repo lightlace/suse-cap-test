@@ -1,4 +1,4 @@
 variable "cluster-name" {
-  default = "suse-cap-eks"
+  default = "terraform-suse-cap-eks"
   type    = "string"
 }

@@ -5,8 +5,8 @@ locals {
 apiVersion: v1
 clusters:
 - cluster:
-    server: ${aws_eks_cluster.demo.endpoint}
-    certificate-authority-data: ${aws_eks_cluster.demo.certificate_authority.0.data}
+    server: ${module.cluster.aws_eks_cluster.suse-cap.endpoint}
+    certificate-authority-data: ${module.cluster.aws_eks_cluster.suse-cap.certificate_authority.0.data}
   name: kubernetes
 contexts:
 - context:
@@ -39,7 +39,7 @@ name: aws-auth
 namespace: kube-system
 data:
 mapRoles: |
-- rolearn: ${aws_iam_role.demo-node.arn}
+- rolearn: ${module.cluster.aws_iam_role.eks-cap.arn}
 username: system:node:{{EC2PrivateDNSName}}
 groups:
 - system:bootstrappers
