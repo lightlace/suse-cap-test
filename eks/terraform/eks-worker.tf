@@ -157,7 +157,7 @@ resource "aws_security_group_rule" "demo-node-ingress-node-https" {
 data "aws_ami" "eks-worker" {
   filter {
     name   = "name"
-    values = ["eks-worker-*"]
+    values = ["amazon-eks-node-v25"]
   }
 
   most_recent = true
