@@ -10,16 +10,12 @@ resource "aws_security_group" "eks-worker" {
     cidr_blocks = ["0.0.0.0/0"]
   }
 
-  ingress {
-    from_port   = 0
-    to_port     = 0
-    protocol    = "-1"
-    cidr_blocks = ["0.0.0.0/0"]
-  }
-
-  tags {
-     Name = "${var.cluster-name}"
-  }
+  tags = "${
+    map(
+     "Name", "${var.cluster-name}-worker",
+     "kubernetes.io/cluster/${var.cluster-name}", "owned",
+    )
+  }"
 }
 
 # Security group rules general and CAP-specific (please test)
@@ -43,6 +39,8 @@ resource "aws_security_group_rule" "eks-worker-ingress-cluster" {
   to_port                  = 65535
   type                     = "ingress"
 }
+
+# CAP specifics
 
 resource "aws_security_group_rule" "eks-worker-ingress-cap-http" {
   description              = "Allow CloudFoundry to communicate on http port"
@@ -157,7 +155,7 @@ resource "aws_autoscaling_group" "eks-worker" {
   }
 
   tag {
-    key                 = "${var.cluster-name}"
+    key                 = "kubernetes.io/cluster/${var.cluster-name}"
     value               = "owned"
     propagate_at_launch = true
   }
