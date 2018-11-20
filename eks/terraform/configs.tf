@@ -27,28 +27,29 @@ users:
         - "-i"
         - "${var.cluster-name}"
 KUBECONFIG
+}
 
-
-config-map-aws-auth = <<CONFIGMAPAWSAUTH
+locals {
+  config-map-auth = <<CONFIGMAPAWSAUTH
 
 
 apiVersion: v1
 kind: ConfigMap
 metadata:
-name: aws-auth
-namespace: kube-system
+  name: aws-auth
+  namespace: kube-system
 data:
-mapRoles: |
-- rolearn: ${aws_iam_role.eks-worker.arn}
-username: system:node:{{EC2PrivateDNSName}}
-groups:
-- system:bootstrappers
-- system:nodes
+  mapRoles: |
+    - rolearn: ${aws_iam_role.eks-worker.arn}
+      username: system:node:{{EC2PrivateDNSName}}
+      groups:
+        - system:bootstrappers
+        - system:nodes
 CONFIGMAPAWSAUTH
 }
 
-output "config-map-aws-auth" {
-  value = "${local.config-map-aws-auth}"
+output "config-map-auth" {
+  value = "${local.config-map-auth}"
 }
 
 output "kubeconfig" {

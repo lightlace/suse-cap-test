@@ -10,16 +10,12 @@ resource "aws_security_group" "eks-worker" {
     cidr_blocks = ["0.0.0.0/0"]
   }
 
-  ingress {
-    from_port   = 0
-    to_port     = 0
-    protocol    = "-1"
-    cidr_blocks = ["0.0.0.0/0"]
-  }
-
-  tags {
-     Name = "${var.cluster-name}"
-  }
+  tags = "${
+    map(
+     "Name", "${var.cluster-name}-worker",
+     "kubernetes.io/cluster/${var.cluster-name}", "owned",
+    )
+  }"
 }
 
 # Security group rules general and CAP-specific (please test)
@@ -43,6 +39,8 @@ resource "aws_security_group_rule" "eks-worker-ingress-cluster" {
   to_port                  = 65535
   type                     = "ingress"
 }
+
+# CAP specifics
 
 resource "aws_security_group_rule" "eks-worker-ingress-cap-http" {
   description              = "Allow CloudFoundry to communicate on http port"
@@ -116,6 +114,16 @@ data "aws_ami" "eks-worker" {
   owners      = ["602401143452"] # Amazon Account ID
 }
 
+data "aws_region" "current" {}
+  
+locals {
+  eks-worker-userdata = <<USERDATA
+#!/bin/bash
+set -o xtrace
+/etc/eks/bootstrap.sh --apiserver-endpoint '${aws_eks_cluster.eks-cluster.endpoint}' --b64-cluster-ca '${aws_eks_cluster.eks-cluster.certificate_authority.0.data}' '${var.cluster-name}'
+USERDATA
+}
+
 # Could possibly use a bare ec2 resource here?
 
 resource "aws_launch_configuration" "eks-worker" {
@@ -147,40 +155,9 @@ resource "aws_autoscaling_group" "eks-worker" {
   }
 
   tag {
-    key                 = "${var.cluster-name}"
+    key                 = "kubernetes.io/cluster/${var.cluster-name}"
     value               = "owned"
     propagate_at_launch = true
   }
 }
 
-data "aws_region" "current" {}
-
-# EKS currently documents this required userdata for EKS worker nodes to
-# properly configure Kubernetes applications on the EC2 instance.
-# We utilize a Terraform local here to simplify Base64 encoding this
-# information into the AutoScaling Launch Configuration.
-# More information: https://amazon-eks.s3-us-west-2.amazonaws.com/1.10.3/2018-06-05/amazon-eks-nodegroup.yaml
-locals {
-  eks-worker-userdata = <<USERDATA
-#!/bin/bash -xe
-
-CA_CERTIFICATE_DIRECTORY=/etc/kubernetes/pki
-CA_CERTIFICATE_FILE_PATH=$CA_CERTIFICATE_DIRECTORY/ca.crt
-mkdir -p $CA_CERTIFICATE_DIRECTORY
-echo "${aws_eks_cluster.eks-cluster.certificate_authority.0.data}" | base64 -d >  $CA_CERTIFICATE_FILE_PATH
-INTERNAL_IP=$(curl -s http://169.254.169.254/latest/meta-data/local-ipv4)
-sed -i s,MASTER_ENDPOINT,${aws_eks_cluster.eks-cluster.endpoint},g /var/lib/kubelet/kubeconfig
-sed -i s,CLUSTER_NAME,${var.cluster-name},g /var/lib/kubelet/kubeconfig
-sed -i s,REGION,${data.aws_region.current.name},g /etc/systemd/system/kubelet.service
-sed -i s,MAX_PODS,20,g /etc/systemd/system/kubelet.service
-sed -i s,MASTER_ENDPOINT,${aws_eks_cluster.eks-cluster.endpoint},g /etc/systemd/system/kubelet.service
-sed -i s,INTERNAL_IP,$INTERNAL_IP,g /etc/systemd/system/kubelet.service
-DNS_CLUSTER_IP=10.100.0.10
-if [[ $INTERNAL_IP == 10.* ]] ; then DNS_CLUSTER_IP=172.20.0.10; fi
-sed -i s,DNS_CLUSTER_IP,$DNS_CLUSTER_IP,g /etc/systemd/system/kubelet.service
-sed -i s,CERTIFICATE_AUTHORITY_FILE,$CA_CERTIFICATE_FILE_PATH,g /var/lib/kubelet/kubeconfig
-sed -i s,CLIENT_CA_FILE,$CA_CERTIFICATE_FILE_PATH,g  /etc/systemd/system/kubelet.service
-systemctl daemon-reload
-systemctl restart kubelet
-USERDATA
-}

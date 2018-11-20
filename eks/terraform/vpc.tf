@@ -1,9 +1,12 @@
 resource "aws_vpc" "main" {
   cidr_block = "10.0.0.0/16"
 
-  tags {
-    Name = "${var.cluster-name}"
-  }
+  tags = "${
+    map(
+     "Name", "${var.cluster-name}-worker",
+     "kubernetes.io/cluster/${var.cluster-name}", "shared",
+    )
+  }"
 }
 
 resource "aws_subnet" "main" {
@@ -13,9 +16,12 @@ resource "aws_subnet" "main" {
   cidr_block        = "10.0.${count.index}.0/24"
   vpc_id            = "${aws_vpc.main.id}"
 
-  tags {
-     Name = "${var.cluster-name}"
-  }
+  tags = "${
+    map(
+     "Name", "${var.cluster-name}-worker",
+     "kubernetes.io/cluster/${var.cluster-name}", "shared",
+    )
+  }"
 }
 
 resource "aws_internet_gateway" "main" {
