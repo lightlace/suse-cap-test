@@ -48,8 +48,8 @@ data:
 CONFIGMAPAWSAUTH
 }
 
-output "config-map-aws-auth" {
-  value = "${local.config-map-aws-auth}"
+output "config-map-auth" {
+  value = "${local.config-map-auth}"
 }
 
 output "kubeconfig" {
