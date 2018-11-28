@@ -1,6 +1,6 @@
 resource "aws_security_group" "eks-worker" {
   name        = "${var.cluster-name}-worker"
-  description = "Security group for all workers in the cluster"
+  description = "Security group for all workers/nodes in the cluster"
   vpc_id      = "${aws_vpc.main.id}"
 
   egress {

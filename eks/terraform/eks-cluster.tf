@@ -1,6 +1,6 @@
 resource "aws_security_group" "eks-cluster" {
   name        = "${var.cluster-name}-cluster"
-  description = "Cluster communication with worker nodes"
+  description = "Security group for the cluster"
   vpc_id      = "${aws_vpc.main.id}"
 
   egress {
