@@ -130,13 +130,19 @@ resource "aws_launch_configuration" "eks-worker" {
   associate_public_ip_address = true
   iam_instance_profile        = "${aws_iam_instance_profile.eks-worker.name}"
   image_id                    = "${data.aws_ami.eks-worker.id}"
-  instance_type               = "m4.large"
+  instance_type               = "m4.xlarge"
   name_prefix                 = "${var.cluster-name}"
   security_groups             = ["${aws_security_group.eks-worker.id}"]
   user_data_base64            = "${base64encode(local.eks-worker-userdata)}"
 
   lifecycle {
     create_before_destroy = true
+  }
+
+  root_block_device {
+    volume_type           = "gp2"
+    volume_size           = 60
+    delete_on_termination = true
   }
 }
 
