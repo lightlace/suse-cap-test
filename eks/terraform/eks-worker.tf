@@ -102,6 +102,17 @@ resource "aws_security_group_rule" "eks-worker-ingress-node-https" {
   type                     = "ingress"
 }
 
+resource "aws_security_group_rule" "eks-worker-ingress-node-ssh" {
+  description              = "Allow communication per SSH"
+  from_port                = 22
+  protocol                 = "tcp"
+  to_port                  = 22
+  security_group_id        = "${aws_security_group.eks-worker.id}"
+  type                     = "ingress"
+  cidr_blocks              = ["0.0.0.0/0"]
+}
+
+
 # Default AMI for EKS workers in eu-west-1 (Ireland)
 
 data "aws_ami" "eks-worker" {
